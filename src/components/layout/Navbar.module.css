@@ -1,0 +1,90 @@
+.header {
+    background-color: var(--header-bg);
+    height: 60px;
+    position: fixed;
+    /* Force fixed to ensure top placement */
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    /* High z-index */
+    border-bottom: 1px solid #1a2332;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    /* Add shadow to distinct from content */
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logoContainer {
+    display: flex;
+    align-items: center;
+    font-family: 'Arial', sans-serif;
+    /* Strict font match */
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: -1px;
+}
+
+.logoText {
+    color: #fff;
+}
+
+.logoBox {
+    background-color: var(--primary);
+    color: #fff;
+    padding: 2px 6px;
+    margin-left: 2px;
+    border-radius: 2px;
+}
+
+.right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.iconBtn {
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: all 0.2s;
+}
+
+.iconBtn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.loginBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(255, 255, 255, 0.08);
+    /* Dark slate button */
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0 16px;
+    height: 36px;
+    border-radius: 2px;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+}
+
+.loginBtn:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+}

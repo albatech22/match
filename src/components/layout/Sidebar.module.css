@@ -1,0 +1,140 @@
+.sidebar {
+    width: 100%;
+    height: fit-content;
+    padding-right: 1rem;
+}
+
+.section {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.section:last-child {
+    border-bottom: none;
+}
+
+.title {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-left: 8px;
+    letter-spacing: 0.1em;
+}
+
+.list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.gridList {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.link:hover {
+    background-color: var(--bg-surface);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(127, 90, 240, 0.1);
+    transform: translateX(2px);
+}
+
+.countryLink {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.countryLink:hover {
+    background-color: var(--bg-surface);
+    border-color: var(--accent-primary);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(127, 90, 240, 0.2);
+}
+
+.flag {
+    width: 20px;
+    height: 15px;
+    border-radius: 2px;
+    object-fit: cover;
+    align-self: flex-start;
+    margin-top: 2px;
+}
+
+.leagueInfo {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.countryName {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+/* My Teams Section */
+.teamAction {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 8px;
+    cursor: pointer;
+    background-color: transparent;
+    border-radius: 6px;
+    transition: background 0.2s;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.teamAction:hover {
+    background-color: rgba(127, 90, 240, 0.1);
+    border-color: var(--accent-primary);
+}
+
+.plusIcon {
+    color: var(--accent-primary);
+}
+
+.addTeam {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}

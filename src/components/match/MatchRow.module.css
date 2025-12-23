@@ -1,0 +1,185 @@
+.row {
+    display: flex;
+    align-items: stretch;
+    background-color: var(--bg-surface);
+    /* #1A1A1A */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 8px;
+    /* Spacing between cards */
+    padding: 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    /* Card rounded */
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.row:hover {
+    background-color: var(--bg-card);
+    /* #222222 */
+    border-color: rgba(127, 90, 240, 0.4);
+    /* Violet Border Glow */
+    box-shadow: 0 0 15px rgba(127, 90, 240, 0.15);
+    /* Violet Glow */
+    transform: translateY(-2px);
+    /* Slight lift */
+}
+
+/* Status Column */
+.statusCol {
+    width: 70px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.star {
+    color: var(--text-secondary);
+    transition: color 0.1s;
+}
+
+.star:hover {
+    color: var(--status-upcoming);
+    /* Gold */
+}
+
+.timeInfo {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: flex;
+    flex-direction: column;
+}
+
+.liveTime {
+    color: var(--status-live);
+    /* Neon Red */
+    font-weight: 700;
+    text-shadow: 0 0 5px rgba(255, 77, 77, 0.4);
+}
+
+.finished {
+    color: var(--status-finished);
+}
+
+/* Teams Column */
+.teamsCol {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding-left: 16px;
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.teamLine {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-primary);
+    height: 24px;
+}
+
+.teamFlag {
+    width: 20px;
+    height: 15px;
+    object-fit: cover;
+    border-radius: 3px;
+    display: block;
+}
+
+.teamName {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+/* Scores */
+.score {
+    width: 30px;
+    text-align: right;
+    margin-right: 16px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+}
+
+.winner {
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.winner .score {
+    color: var(--status-live);
+    /* Highlight score */
+    text-shadow: 0 0 5px rgba(255, 77, 77, 0.4);
+}
+
+/* Desktop Horizontal Layout */
+@media (min-width: 768px) {
+    .row {
+        height: 64px;
+        /* Taller row for desktop */
+        align-items: center;
+        padding: 0 16px;
+    }
+
+    .teamsCol {
+        flex-direction: row;
+        align-items: center;
+        gap: 0;
+        padding-left: 0;
+        border-left: none;
+    }
+
+    /* Home Team */
+    .teamLine:first-child {
+        flex: 1;
+        justify-content: flex-end;
+        padding-right: 20px;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        /* Divider */
+    }
+
+    .teamLine:first-child .teamName {
+        text-align: right;
+        font-size: 14px;
+    }
+
+    .teamLine:first-child .score {
+        margin-right: 0;
+        margin-left: 15px;
+        text-align: center;
+        width: 30px;
+        font-size: 16px;
+    }
+
+    /* Away Team */
+    .teamLine:last-child {
+        flex: 1;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        padding-left: 20px;
+    }
+
+    .teamLine:last-child .teamName {
+        text-align: left;
+        font-size: 14px;
+    }
+
+    .teamLine:last-child .score {
+        margin-right: 0;
+        margin-left: 0;
+        margin-right: 15px;
+        text-align: center;
+        width: 30px;
+        font-size: 16px;
+    }
+}

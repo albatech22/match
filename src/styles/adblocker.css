@@ -1,0 +1,70 @@
+/* Advanced Ad Blocker CSS */
+/* This file blocks common ad elements and overlays */
+
+/* Block common ad containers */
+iframe[src*="doubleclick"],
+iframe[src*="googlesyndication"],
+iframe[src*="googleadservices"],
+iframe[src*="/ads/"],
+iframe[src*="adserver"],
+iframe[src*="advertising"],
+div[id*="ad-"],
+div[id*="ads-"],
+div[class*="advertisement"],
+div[class*="ad-container"],
+div[class*="ad_container"],
+div[data-ad],
+div[data-ads] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+
+/* Block overlay ads and popups */
+div[style*="z-index: 2147483647"],
+div[style*="position: fixed"][style*="z-index"],
+.popup-overlay,
+.ad-overlay,
+.video-ad-overlay {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+/* Block ad-related anchors */
+a[href*="/click?"],
+a[href*="redirect."],
+a[href*="/tracking/"],
+a[onclick*="window.open"],
+a[target="_blank"][href*="ad"] {
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+/* Ensure video player stays clean */
+video+div[style*="absolute"],
+video+div[style*="overlay"] {
+    display: none !important;
+}
+
+/* Block preroll and midroll ad containers */
+.preroll-ad,
+.midroll-ad,
+.video-ads,
+.ad-break {
+    display: none !important;
+}
+
+/* Anti-adblock killer - prevent detection */
+body[style*="overflow: hidden"] {
+    overflow: auto !important;
+}
+
+/* Clean iframe environment */
+iframe {
+    /* Prevent unwanted scripts from ads */
+    image-rendering: auto;
+}

@@ -1,0 +1,69 @@
+.tabsContainer {
+    background-color: var(--surface);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    display: flex;
+    justify-content: space-between;
+    /* Space between tabs and date picker */
+    align-items: center;
+    margin-bottom: 2px;
+    border: 1px solid var(--border);
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.tab {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    background-color: #2a3545;
+    /* Dark button bg */
+    transition: all 0.2s;
+}
+
+.tab:hover {
+    background-color: #3b444f;
+    color: #fff;
+}
+
+.active {
+    background-color: var(--live-text);
+    /* Red/Pink active state */
+    color: #fff;
+}
+
+.datePicker {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background-color: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+}
+
+.date {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    padding: 0 8px;
+}
+
+.iconBtn {
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: 2px;
+}
+
+.iconBtn:hover {
+    background-color: var(--surface);
+    color: #fff;
+}
