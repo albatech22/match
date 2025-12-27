@@ -2,7 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFixtures, getLiveMatches } from '@/lib/api-football';
 
+// Force dynamic rendering - no caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 export const maxDuration = 60; // Maximum execution time in seconds
+
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
@@ -28,7 +32,17 @@ export async function GET(request: NextRequest) {
         }
 
         console.log(`[API] Successfully fetched ${data?.length || 0} matches`);
-        return NextResponse.json({ success: true, data });
+        return NextResponse.json(
+            { success: true, data },
+            {
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            }
+        );
+
     } catch (error) {
         console.error('[API] Route Error:', error);
         console.error('[API] Error details:', {

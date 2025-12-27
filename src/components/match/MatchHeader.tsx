@@ -19,197 +19,136 @@ export default function MatchHeader({ match, homeScore, awayScore, liveTime }: M
     const isFinished = ['FT', 'AET', 'PEN', 'Finished'].includes(rawStatus);
     const isUpcoming = !isLive && !isFinished;
 
-    return (
-        <div className="relative bg-gradient-to-b from-[#0a0a0a] via-[#111] to-black border-b border-white/5">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-5">
-                <div className="absolute inset-0" style={{
-                    backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
-                    backgroundSize: '32px 32px'
-                }}></div>
-            </div>
+    // Extract league information
+    const leagueName = match.league?.name || match.league || match.category || 'Football';
+    const leagueYear = match.league?.year || '';
+    const stageName = match.league?.stage || '';
+    const matchRound = match.league?.round || '';
 
-            {/* Back Button */}
-            <div className="relative max-w-[1000px] mx-auto px-4 pt-6">
-                <Link href="/" className="inline-flex items-center gap-2 text-secondary hover:text-white transition-colors group">
-                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-sm font-medium">Retour</span>
+    // Build subtitle dynamically
+    const subtitle = [
+        leagueName,
+        leagueYear,
+        stageName,
+        matchRound && `Journée ${matchRound}`
+    ].filter(Boolean).join(' · ');
+
+    return (
+        <div className="bg-[#1a1a1a] rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
+            {/* Card Header */}
+            <div className="px-5 py-4 flex items-center justify-between border-b border-white/5 bg-white/[0.02]">
+                <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-lg text-white">Matchs</h3>
+                </div>
+                <Link href="#" className="text-secondary hover:text-white transition-colors">
+                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" /></svg>
                 </Link>
             </div>
 
-            {/* Main Header Content */}
-            <div className="relative max-w-[1000px] mx-auto px-4 py-8">
-                {/* League & Status Badge */}
-                <div className="flex items-center justify-center gap-3 mb-6">
-                    <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-sm">
-                        <div className="flex items-center gap-2">
-                            <Trophy className="w-3.5 h-3.5 text-accent-cyan" />
-                            <span className="text-xs font-bold text-white uppercase tracking-wider">
-                                {match.league || match.category || 'Football'}
-                            </span>
+            <div className="p-6">
+                {/* League Subheader - Dynamic */}
+                <div className="text-secondary text-xs mb-8 flex items-center gap-2">
+                    <span className="truncate">{subtitle || leagueName}</span>
+                </div>
+
+                {/* Main Score/Teams area */}
+                <div className="flex items-center justify-between gap-4 mb-10">
+                    {/* Home Team */}
+                    <div className="flex-1 flex flex-col items-center gap-4">
+                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-[#2a2a2a] p-3 flex items-center justify-center border border-white/10 shadow-lg">
+                            {match.home_badge || match.homeTeam?.badge ? (
+                                <img
+                                    src={match.home_badge || match.homeTeam?.badge}
+                                    alt={match.home_team || match.homeTeam?.name}
+                                    className="w-full h-full object-contain"
+                                />
+                            ) : (
+                                <div className="text-3xl">⚽</div>
+                            )}
+                        </div>
+                        <span className="text-lg font-bold text-center leading-tight">
+                            {match.home_team || match.homeTeam?.name || 'Home'}
+                        </span>
+                    </div>
+
+                    {/* Middle Score/Status Section */}
+                    <div className="flex-1 flex flex-col items-center justify-center min-w-[120px]">
+                        <div className="flex items-baseline gap-4 mb-2">
+                            <span className="text-6xl md:text-7xl font-black text-white">{homeScore ?? 0}</span>
+                            <span className="text-6xl md:text-7xl font-black text-white">{awayScore ?? 0}</span>
+                        </div>
+
+                        <div className="text-center">
+                            {isLive && (
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xs font-bold text-red-500 uppercase tracking-widest animate-pulse">EN DIRECT</span>
+                                    <span className="text-sm font-bold text-secondary">{liveTime || match.timer || "Live"}</span>
+                                </div>
+                            )}
+                            {isFinished && (
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-sm font-bold text-secondary uppercase tracking-tight">Terminé</span>
+                                    <span className="text-xs text-secondary/60">Aujourd'hui</span>
+                                </div>
+                            )}
+                            {isUpcoming && (
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xs font-bold text-accent-cyan uppercase tracking-widest">À VENIR</span>
+                                    {match.startTime && (
+                                        <span className="text-sm font-bold text-secondary">
+                                            {new Date(match.startTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {isLive && (
-                        <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="px-3 py-1.5 bg-red-500/20 border border-red-500/50 rounded-full backdrop-blur-sm"
-                        >
-                            <div className="flex items-center gap-2">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                                </span>
-                                <span className="text-xs font-bold text-red-500 uppercase tracking-wider">
-                                    {match.timer || liveTime || "LIVE"}
-                                </span>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {isFinished && (
-                        <div className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-sm">
-                            <span className="text-xs font-bold text-secondary uppercase tracking-wider">
-                                Terminé
-                            </span>
-                        </div>
-                    )}
-
-                    {isUpcoming && (
-                        <div className="px-3 py-1.5 bg-accent-cyan/10 border border-accent-cyan/20 rounded-full backdrop-blur-sm">
-                            <span className="text-xs font-bold text-accent-cyan uppercase tracking-wider">
-                                À Venir
-                            </span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Teams & Score */}
-                <div className="flex items-center justify-between gap-4 md:gap-8">
-                    {/* Home Team */}
-                    <motion.div
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        className="flex-1 flex flex-col items-center gap-4"
-                    >
-                        <div className="relative group">
-                            <div className="absolute inset-0 bg-accent-cyan/20 blur-2xl group-hover:bg-accent-cyan/30 transition-all rounded-full opacity-50"></div>
-                            <div className="relative w-20 h-20 md:w-28 md:h-28 rounded-full bg-[#1a1a1a] border-2 border-white/10 overflow-hidden flex items-center justify-center p-4 group-hover:border-accent-cyan/50 transition-all">
-                                {match.home_badge || match.homeTeam?.badge || match.teams?.home?.badge ? (
-                                    <img
-                                        src={match.home_badge || match.homeTeam?.badge || match.teams?.home?.badge}
-                                        alt={match.home_team || match.homeTeam?.name || match.teams?.home?.name}
-                                        className="w-full h-full object-contain"
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).style.display = 'none';
-                                        }}
-                                    />
-                                ) : (
-                                    <div className="text-4xl">⚽</div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="text-center">
-                            <h2 className="text-sm md:text-xl font-bold text-white max-w-[120px] md:max-w-none mx-auto leading-tight">
-                                {match.home_team || match.homeTeam?.name || match.teams?.home?.name || 'Home'}
-                            </h2>
-                        </div>
-                    </motion.div>
-
-                    {/* Score or VS */}
-                    <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ delay: 0.1 }}
-                        className="flex items-center justify-center min-w-[100px]"
-                    >
-                        {isUpcoming ? (
-                            <div className="flex flex-col items-center justify-center gap-2">
-                                <span className="text-3xl md:text-5xl font-black text-white/10 tracking-widest">VS</span>
-                                {match.startTime && (
-                                    <span className="text-xs md:text-sm font-mono text-accent-cyan bg-accent-cyan/10 px-2 py-1 rounded">
-                                        {new Date(match.startTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2 md:gap-4">
-                                <div className="text-5xl md:text-7xl font-black text-white tracking-tighter">
-                                    {homeScore ?? 0}
-                                </div>
-                                <div className="text-2xl md:text-4xl font-black text-secondary/30">-</div>
-                                <div className="text-5xl md:text-7xl font-black text-white tracking-tighter">
-                                    {awayScore ?? 0}
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-
                     {/* Away Team */}
-                    <motion.div
-                        initial={{ x: 20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        className="flex-1 flex flex-col items-center gap-4"
-                    >
-                        <div className="relative group">
-                            <div className="absolute inset-0 bg-accent-purple/20 blur-2xl group-hover:bg-accent-purple/30 transition-all rounded-full opacity-50"></div>
-                            <div className="relative w-20 h-20 md:w-28 md:h-28 rounded-full bg-[#1a1a1a] border-2 border-white/10 overflow-hidden flex items-center justify-center p-4 group-hover:border-accent-purple/50 transition-all">
-                                {match.away_badge || match.awayTeam?.badge || match.teams?.away?.badge ? (
-                                    <img
-                                        src={match.away_badge || match.awayTeam?.badge || match.teams?.away?.badge}
-                                        alt={match.away_team || match.awayTeam?.name || match.teams?.away?.name}
-                                        className="w-full h-full object-contain"
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).style.display = 'none';
-                                        }}
-                                    />
-                                ) : (
-                                    <div className="text-4xl">⚽</div>
-                                )}
-                            </div>
+                    <div className="flex-1 flex flex-col items-center gap-4">
+                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-[#2a2a2a] p-3 flex items-center justify-center border border-white/10 shadow-lg">
+                            {match.away_badge || match.awayTeam?.badge ? (
+                                <img
+                                    src={match.away_badge || match.awayTeam?.badge}
+                                    alt={match.away_team || match.awayTeam?.name}
+                                    className="w-full h-full object-contain"
+                                />
+                            ) : (
+                                <div className="text-3xl">⚽</div>
+                            )}
                         </div>
-                        <div className="text-center">
-                            <h2 className="text-sm md:text-xl font-bold text-white max-w-[120px] md:max-w-none mx-auto leading-tight">
-                                {match.away_team || match.awayTeam?.name || match.teams?.away?.name || 'Away'}
-                            </h2>
-                        </div>
-                    </motion.div>
+                        <span className="text-lg font-bold text-center leading-tight">
+                            {match.away_team || match.awayTeam?.name || 'Away'}
+                        </span>
+                    </div>
                 </div>
 
-                {/* Match Info Bar */}
-                {(match.stadium || match.referee || match.startTime) && (
-                    <motion.div
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                        className="mt-8 flex flex-wrap items-center justify-center gap-4 text-xs text-secondary"
-                    >
-                        {match.startTime && !isLive && !isFinished && (
-                            <div className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5" />
-                                <span>{new Date(match.startTime).toLocaleString('fr-FR', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                })}</span>
-                            </div>
+                {/* Card Footer Match Highlights */}
+                <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div className="flex items-center gap-6 overflow-x-auto no-scrollbar w-full md:w-auto">
+                        {match.teamFixtures?.home?.slice(0, 1).map((f: any, i: number) => (
+                            <Link key={`home-${i}`} href={`/match/${f.fixture.id}`} className="flex-shrink-0 flex items-center gap-2 text-xs text-secondary bg-white/[0.03] px-3 py-2 rounded-xl hover:bg-white/[0.06] transition-colors">
+                                <span className="font-bold text-white">{f.teams.home.name} v {f.teams.away.name}</span>
+                                <span>{new Date(f.fixture.date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })}</span>
+                            </Link>
+                        ))}
+                        {match.teamFixtures?.away?.slice(0, 1).map((f: any, i: number) => (
+                            <Link key={`away-${i}`} href={`/match/${f.fixture.id}`} className="flex-shrink-0 flex items-center gap-2 text-xs text-secondary bg-white/[0.03] px-3 py-2 rounded-xl hover:bg-white/[0.06] transition-colors">
+                                <span className="font-bold text-white">{f.teams.home.name} v {f.teams.away.name}</span>
+                                <span>{new Date(f.fixture.date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })}</span>
+                            </Link>
+                        ))}
+
+                        {(!match.teamFixtures?.home?.length && !match.teamFixtures?.away?.length) && (
+                            <div className="text-[10px] text-secondary/40 uppercase tracking-widest">Pas de matchs à venir</div>
                         )}
-                        {match.stadium && (
-                            <div className="flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5" />
-                                <span>{match.stadium}</span>
-                            </div>
-                        )}
-                        {match.referee && (
-                            <div className="flex items-center gap-1.5">
-                                <span>🏁</span>
-                                <span>{match.referee}</span>
-                            </div>
-                        )}
-                    </motion.div>
-                )}
+                    </div>
+
+                    <button className="flex-shrink-0 bg-accent-cyan/10 hover:bg-accent-cyan/20 text-accent-cyan px-5 py-2.5 rounded-full text-sm font-bold transition-all flex items-center gap-2">
+                        Programme complet des matchs
+                        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" /></svg>
+                    </button>
+                </div>
             </div>
         </div>
     );

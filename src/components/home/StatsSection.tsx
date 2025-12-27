@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { Radio } from 'lucide-react'
 import { useStandings, useLiveMatches } from '@/hooks/useSportData'
 
 export default function StatsSection() {
@@ -24,7 +25,13 @@ export default function StatsSection() {
             {/* Left: Interactive Table */}
             <div>
                 <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-2xl font-bold text-white">Season Stats</h3>
+                    <div className="flex items-center gap-3">
+                        <h3 className="text-2xl font-bold text-white">Season Stats</h3>
+                        <span className="px-2 py-1 bg-accent/10 border border-accent/30 rounded-md text-xs font-mono text-accent flex items-center gap-1.5">
+                            <Radio className="w-3 h-3 animate-pulse" />
+                            LIVE 10s
+                        </span>
+                    </div>
                     <div className="flex p-1 bg-surface rounded-lg border border-white/5">
                         <button
                             onClick={() => setActiveTab('standings')}
@@ -96,27 +103,53 @@ export default function StatsSection() {
                             )}
 
                             {/* SCHEDULE RENDER */}
-                            {activeTab === 'schedule' && schedule?.slice(0, 8).map((match, i) => (
-                                <motion.tr
-                                    key={match.id}
-                                    className="border-b border-white/5 hover:bg-white/5 transition-colors group cursor-default"
-                                >
-                                    <td className="p-4 font-mono text-accent-cyan">{match.status === 'Live' ? 'LIVE' : match.start_time?.slice(11, 16)}</td>
-                                    <td className="p-4 font-bold text-white">
-                                        <div className="flex flex-col gap-1">
-                                            <div className="flex items-center gap-2">
-                                                {match.home_badge && <img src={match.home_badge} className="w-4 h-4 object-contain" alt="" />}
-                                                {match.home_team}
+                            {activeTab === 'schedule' && schedule?.slice(0, 8).map((match, i) => {
+                                const isLive = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'].includes(match.status || '');
+                                const isFinished = ['FT', 'AET', 'PEN'].includes(match.status || '');
+
+                                return (
+                                    <motion.tr
+                                        key={match.id}
+                                        className="border-b border-white/5 hover:bg-white/5 transition-colors group cursor-default"
+                                    >
+                                        <td className="p-4 font-mono">
+                                            {isLive ? (
+                                                <span className="text-[#FF2D55] font-bold flex items-center gap-1.5">
+                                                    <span className="w-1.5 h-1.5 bg-[#FF2D55] rounded-full animate-pulse"></span>
+                                                    {match.timer || 'LIVE'}
+                                                </span>
+                                            ) : isFinished ? (
+                                                <span className="text-white/40 text-xs">FT</span>
+                                            ) : (
+                                                <span className="text-accent-cyan">{match.start_time?.slice(11, 16)}</span>
+                                            )}
+                                        </td>
+                                        <td className="p-4 font-bold text-white">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2 justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        {match.home_badge && <img src={match.home_badge} className="w-4 h-4 object-contain" alt="" />}
+                                                        {match.home_team}
+                                                    </div>
+                                                    {(isLive || isFinished) && (
+                                                        <span className="text-sm font-black ml-2">{match.home_score ?? 0}</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        {match.away_badge && <img src={match.away_badge} className="w-4 h-4 object-contain" alt="" />}
+                                                        {match.away_team}
+                                                    </div>
+                                                    {(isLive || isFinished) && (
+                                                        <span className="text-sm font-black ml-2">{match.away_score ?? 0}</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                {match.away_badge && <img src={match.away_badge} className="w-4 h-4 object-contain" alt="" />}
-                                                {match.away_team}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-right text-xs text-secondary uppercase tracking-wider">{match.league}</td>
-                                </motion.tr>
-                            ))}
+                                        </td>
+                                        <td className="p-4 text-right text-xs text-secondary uppercase tracking-wider">{match.league?.name}</td>
+                                    </motion.tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

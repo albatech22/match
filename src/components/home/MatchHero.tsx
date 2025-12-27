@@ -52,7 +52,7 @@ export default function MatchHero() {
                     <div className="mb-8 animate-in slide-in-from-left-4 duration-700 delay-100">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white/80 mb-4">
                             <Shield className="w-3 h-3" />
-                            {featuredMatch.league}
+                            {featuredMatch.league?.name}
                         </div>
                         <h1 className="text-4xl md:text-7xl font-black text-white italic uppercase tracking-tighter leading-[0.9]">
                             {featuredMatch.home_team}

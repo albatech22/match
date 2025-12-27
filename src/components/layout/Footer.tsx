@@ -1,78 +1,99 @@
-import { Facebook, Twitter, Instagram, Youtube, Heart } from 'lucide-react'
-import Link from 'next/link'
+import Link from 'next/link';
+import { FaTwitter, FaInstagram, FaTelegram, FaGithub } from 'react-icons/fa';
 
 export default function Footer() {
-    return (
-        <footer className="bg-surface border-t border-white/5 py-16">
-            <div className="max-w-[1400px] mx-auto px-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+    const currentYear = new Date().getFullYear();
 
-                    {/* Brand */}
-                    <div className="col-span-1 md:col-span-2">
-                        <h3 className="text-3xl font-black italic tracking-tighter text-white mb-4">
-                            KIVU <span className="text-accent">STREAM</span>
-                        </h3>
-                        <p className="text-secondary max-w-sm mb-6 leading-relaxed">
-                            La destination ultime pour la couverture sportive. Scores en directs, analyses approfondies et résumés immersifs en temps réel.
+    return (
+        <footer className="bg-black border-t border-white/5 py-12 mt-20">
+            <div className="max-w-[1200px] mx-auto px-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                    {/* Brand Column */}
+                    <div className="space-y-4">
+                        <Link href="/" className="text-2xl font-black text-white italic tracking-tighter">
+                            KIVU<span className="text-accent-cyan">STREAM</span>
+                        </Link>
+                        <p className="text-secondary text-sm leading-relaxed">
+                            La référence pour les scores en direct, le streaming et les statistiques du football africain et international.
                         </p>
-                        <div className="flex gap-4">
-                            {[Facebook, Twitter, Instagram, Youtube].map((Icon, i) => (
-                                <div key={i} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-secondary hover:bg-accent hover:text-white transition-all cursor-pointer hover:shadow-lg hover:scale-110">
-                                    <Icon className="w-5 h-5" />
-                                </div>
-                            ))}
+                        <div className="flex gap-4 pt-2">
+                            <SocialLink href="#" icon={<FaTwitter />} label="Twitter" />
+                            <SocialLink href="#" icon={<FaInstagram />} label="Instagram" />
+                            <SocialLink href="#" icon={<FaTelegram />} label="Telegram" />
                         </div>
                     </div>
 
-                    {/* Links */}
+                    {/* Quick Links */}
                     <div>
-                        <h4 className="text-white font-bold uppercase tracking-wider mb-6">Plateforme</h4>
-                        <ul className="space-y-4">
-                            {['Scores en Direct', 'Résumés', 'Premium', 'Application Mobile'].map(item => (
-                                <li key={item}>
-                                    <Link href="#" className="text-secondary hover:text-accent-cyan transition-colors text-sm font-medium">
-                                        {item}
-                                    </Link>
-                                </li>
-                            ))}
+                        <h3 className="text-white font-bold mb-4">Navigation</h3>
+                        <ul className="space-y-2 text-sm text-secondary">
+                            <li><Link href="/" className="hover:text-accent-cyan transition-colors">Accueil</Link></li>
+                            <li><Link href="/live" className="hover:text-accent-cyan transition-colors">Matchs en Direct</Link></li>
+                            <li><Link href="/tv" className="hover:text-accent-cyan transition-colors">Programme TV</Link></li>
+                            <li><Link href="/changelog" className="hover:text-accent-cyan transition-colors">Nouveautés</Link></li>
                         </ul>
                     </div>
 
+                    {/* Legal */}
                     <div>
-                        <h4 className="text-white font-bold uppercase tracking-wider mb-6">Légal</h4>
-                        <ul className="space-y-4">
-                            {['Confidentialité', 'Conditions d\'utilisation', 'Cookies', 'Contact'].map(item => (
-                                <li key={item}>
-                                    <Link href="#" className="text-secondary hover:text-accent-cyan transition-colors text-sm font-medium">
-                                        {item}
-                                    </Link>
-                                </li>
-                            ))}
+                        <h3 className="text-white font-bold mb-4">Légal</h3>
+                        <ul className="space-y-2 text-sm text-secondary">
+                            <li><Link href="/about" className="hover:text-accent-cyan transition-colors">À Propos</Link></li>
+                            <li><Link href="#" className="hover:text-accent-cyan transition-colors">Confidentialité</Link></li>
+                            <li><Link href="#" className="hover:text-accent-cyan transition-colors">Conditions d'utilisation</Link></li>
+                            <li><Link href="#" className="hover:text-accent-cyan transition-colors">DMCA</Link></li>
+                            <li><Link href="/contact" className="hover:text-accent-cyan transition-colors">Contact</Link></li>
                         </ul>
+                    </div>
+
+                    {/* Newsletter (Mock) */}
+                    <div>
+                        <h3 className="text-white font-bold mb-4">Restez informé</h3>
+                        <p className="text-xs text-secondary mb-4">Recevez les dernières mises à jour directement dans votre boîte mail.</p>
+                        <div className="flex gap-2">
+                            <input
+                                type="email"
+                                placeholder="votre@email.com"
+                                className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white w-full focus:outline-none focus:border-accent-cyan transition-colors"
+                            />
+                            <button className="bg-accent-cyan text-black font-bold text-xs px-4 py-2 rounded-lg hover:bg-cyan-400 transition-colors">
+                                OK
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-xs text-tertiary uppercase tracking-wider">© 2025 Kivu Stream. Tous droits réservés.</p>
-
-                    {/* Idantika Credit - Premium & SEO Optimized */}
-                    <a
-                        href="https://idantika.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-accent-cyan/30 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-accent-cyan/10"
-                        title="DÉVELOPPEMENT WEB ET MOBILE HAUT DE GAMME PAR IDANTIKA"
-                        aria-label="Site web de Idantika - Agence de développement"
-                    >
-                        <span className="text-xs text-secondary/80 font-medium uppercase tracking-wider group-hover:text-white transition-colors">Made with</span>
-                        <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 animate-[pulse_1.5s_ease-in-out_infinite] group-hover:scale-125 transition-transform" />
-                        <span className="text-xs text-secondary/80 font-medium uppercase tracking-wider group-hover:text-white transition-colors">by</span>
-                        <span className="text-sm font-black bg-gradient-to-r from-accent-cyan via-white to-accent-purple bg-clip-text text-transparent group-hover:from-white group-hover:to-accent-cyan transition-all">
-                            IDANTIKA
-                        </span>
-                    </a>
+                <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p className="text-xs text-secondary">
+                        &copy; {currentYear} Kivu Stream. Tous droits réservés.
+                    </p>
+                    <div className="flex gap-2 items-center text-sm">
+                        <span className="text-secondary">Fait avec</span>
+                        <span className="text-pink-500 animate-pulse">❤️</span>
+                        <span className="text-secondary">par</span>
+                        <a
+                            href="https://idantika.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-bold bg-gradient-to-r from-accent-cyan via-purple-400 to-pink-500 bg-clip-text text-transparent hover:from-pink-500 hover:via-purple-400 hover:to-accent-cyan transition-all duration-500 hover:scale-110 inline-block"
+                        >
+                            Idantika
+                        </a>
+                    </div>
                 </div>
             </div>
         </footer>
-    )
+    );
+}
+
+function SocialLink({ href, icon, label }: { href: string, icon: React.ReactNode, label: string }) {
+    return (
+        <a
+            href={href}
+            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:bg-accent-cyan hover:text-black transition-all duration-300"
+            aria-label={label}
+        >
+            {icon}
+        </a>
+    );
 }

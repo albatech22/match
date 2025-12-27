@@ -77,7 +77,7 @@ export default function LiveScoreHeader() {
                 </div>
 
                 {/* Date Strip */}
-                <div className="flex items-center justify-between py-2 bg-[#1a1a1a] rounded-t-xl border-x border-t border-white/5 relative top-[1px]">
+                <div className="hidden md:hidden lg:hidden items-center justify-between py-2 bg-[#1a1a1a] rounded-t-xl border-x border-t border-white/5 relative top-[1px]">
                     <button className="p-2 text-secondary hover:text-white"><ChevronLeft className="w-5 h-5" /></button>
 
                     <div className="flex items-center gap-1 md:gap-4 overflow-x-auto no-scrollbar px-2">

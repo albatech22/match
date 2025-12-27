@@ -1,176 +1,223 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLiveMatches, useUpcomingMatches } from '@/hooks/useSportData';
-import CompactMatchRow from '@/components/match/CompactMatchRow';
-import { Filter, Calendar, ChevronDown } from 'lucide-react';
+import MatchCard from '@/components/match/MatchCard';
+import DateSelector from '@/components/home/DateSelector';
+import { LayoutGrid, Clock, Star, ChevronRight, Filter, MessageCircle } from 'lucide-react';
+import Link from 'next/link';
+import { getLocalDateString } from '@/lib/utils';
 
-const tabs = [
-    { id: 'all', label: 'Tout' },
-    { id: 'live', label: 'En Direct' },
-    { id: 'upcoming', label: 'À Venir' },
-    { id: 'finished', label: 'Terminé' },
-];
-
-export default function MatchFeed() {
-    const [mounted, setMounted] = useState(false);
-    const [activeTab, setActiveTab] = useState('upcoming');
+export default function MatchFeed({ mode = 'all' }: { mode?: 'all' | 'live' }) {
     const { matches: liveMatches, isLoading: liveLoading } = useLiveMatches();
-    const { matches: upcomingMatches, isLoading: upcomingLoading } = useUpcomingMatches();
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [todayStr, setTodayStr] = useState('');
+
+    const dateStr = getLocalDateString(selectedDate);
+    const { matches: upcomingMatches, isLoading: upcomingLoading } = useUpcomingMatches(dateStr);
 
     useEffect(() => {
-        setMounted(true);
-    }, []);
+        const now = new Date();
+        const options: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        setTodayStr(now.toLocaleDateString('fr-FR', options));
 
-    const matches = activeTab === 'live' ? liveMatches :
-        activeTab === 'upcoming' ? upcomingMatches :
-            activeTab === 'all' ? [...(liveMatches || []), ...(upcomingMatches || [])] :
-                []; // finished not implemented
-
-    // ... (rest of logic)
-
-    if (!mounted) {
-        return <div className="min-h-[400px]"></div>; // Skeleton or empty
-    }
-
-    // Deduplicate
-    const uniqueMatches = Array.from(new Map(matches?.map(m => [m.id, m])).values());
-
-    // Helper function to get date label
-    const getDateLabel = (date: Date): string => {
+        // Set initial selected date to today
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        setSelectedDate(today);
+    }, []);
 
-        const matchDate = new Date(date);
-        matchDate.setHours(0, 0, 0, 0);
-
-        const diffTime = matchDate.getTime() - today.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) return "Aujourd'hui";
-        if (diffDays === 1) return "Demain";
-        if (diffDays === 2) return "Après-demain";
-        if (diffDays === -1) return "Hier";
-        if (diffDays < -1 && diffDays >= -7) return "Cette semaine";
-
-        // Return full date for other cases
-        return matchDate.toLocaleDateString('fr-FR', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long'
-        });
+    const handleDateChange = (date: Date) => {
+        setSelectedDate(date);
+        // Update the display string
+        const options: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        setTodayStr(date.toLocaleDateString('fr-FR', options));
     };
 
-    // Group by Date
-    const groupedMatches = uniqueMatches.reduce((groups, match) => {
-        const matchTime = new Date(match.start_time || match.startTime || 0);
-        const dateLabel = matchTime.getTime() > 0 ? getDateLabel(matchTime) : "Date inconnue";
+    const groupedMatches = useMemo(() => {
+        const all = [...(liveMatches || []), ...(upcomingMatches || [])];
 
-        if (!groups[dateLabel]) {
-            groups[dateLabel] = {
-                date: matchTime,
-                matches: []
-            };
-        }
-        groups[dateLabel].matches.push(match);
-        return groups;
-    }, {} as Record<string, { date: Date, matches: typeof uniqueMatches }>);
+        // Deduplicate by ID
+        const seen = new Set();
+        const unique = all.filter(match => {
+            if (seen.has(match.id)) return false;
+            seen.add(match.id);
+            return true;
+        });
 
-    // Sort groups by date
-    const sortedGroups = Object.entries(groupedMatches).sort((a, b) => {
-        return a[1].date.getTime() - b[1].date.getTime();
-    });
+        // Get date range based on selected date
+        const targetDate = selectedDate || new Date();
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // Filter by mode and date
+        const targetDateStr = getLocalDateString(selectedDate) || getLocalDateString(new Date());
+
+        const filtered = unique.filter(m => {
+            // Filter by mode (live or all)
+            const modeFilter = mode === 'live'
+                ? (m.status === 'LIVE' || m.status === '1H' || m.status === '2H' || m.status === 'HT')
+                : true;
+
+            if (!modeFilter) return false;
+
+            // Filter by selected date (String comparison to avoid timezone shifts)
+            const matchDateFull = m.startTime || m.start_time || (m as any).fixture?.date;
+            if (!matchDateFull) return true;
+
+            const matchDateStr = matchDateFull.split('T')[0];
+            return matchDateStr === targetDateStr;
+        });
+
+        // Group by league
+        const groups: { [key: string]: { league: any, matches: any[] } } = {};
+        filtered.forEach(match => {
+            const leagueId = typeof match.league === 'object' && match.league?.id ? match.league.id : 'other';
+            if (!groups[leagueId]) {
+                groups[leagueId] = {
+                    league: match.league,
+                    matches: []
+                };
+            }
+            groups[leagueId].matches.push(match);
+        });
+
+        // Convert to array and sort with priority for AFCON until Jan 19, 2026
+        const groupsArray = Object.values(groups);
+        const now = new Date();
+        const afconPriorityEnd = new Date('2026-01-19T23:59:59');
+
+        groupsArray.sort((a, b) => {
+            // If before Jan 19, 2025, prioritize AFCON
+            if (now <= afconPriorityEnd) {
+                const aIsAfcon = a.league?.name?.toUpperCase().includes('AFRICA CUP') ||
+                    a.league?.name?.toUpperCase().includes('AFCON') ||
+                    a.league?.name?.toUpperCase().includes('CAF');
+                const bIsAfcon = b.league?.name?.toUpperCase().includes('AFRICA CUP') ||
+                    b.league?.name?.toUpperCase().includes('AFCON') ||
+                    b.league?.name?.toUpperCase().includes('CAF');
+
+                if (aIsAfcon && !bIsAfcon) return -1;
+                if (!aIsAfcon && bIsAfcon) return 1;
+            }
+
+            // Otherwise maintain original order
+            return 0;
+        });
+
+        return groupsArray;
+    }, [liveMatches, upcomingMatches, mode, selectedDate]);
+
+    const isLoading = liveLoading || upcomingLoading;
 
     return (
-        <section className="w-full max-w-[1000px] mx-auto px-0 md:px-4 pb-20">
-            {/* Filter Bar */}
-            <div className="flex items-center justify-between gap-4 mb-4 px-4 sticky top-16 z-30 py-4 bg-black/95 backdrop-blur-xl border-b border-white/5">
-                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all ${activeTab === tab.id
-                                ? 'bg-accent-cyan text-black'
-                                : 'bg-white/5 text-secondary hover:bg-white/10 hover:text-white'
-                                }`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
-
-                <button className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors">
-                    <Calendar className="w-4 h-4" />
-                </button>
+        <section className="w-full max-w-[1200px] mx-auto pb-8">
+            {/* Mobile Date Selector */}
+            <div className="lg:hidden">
+                <DateSelector
+                    selectedDate={selectedDate || undefined}
+                    onDateChange={handleDateChange}
+                />
             </div>
 
-            {/* List */}
-            <div className="flex flex-col gap-6">
-                {sortedGroups.map(([dateLabel, { matches: dateMatches }]) => (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        key={dateLabel}
-                        className="bg-[#0f0f0f] md:rounded-xl overflow-hidden border-t md:border border-white/5"
-                    >
-                        {/* Date Header */}
-                        <div className="px-4 py-3 bg-gradient-to-r from-accent-cyan/10 to-accent-purple/10 flex items-center justify-between border-b border-white/5">
-                            <div className="flex items-center gap-3">
-                                <Calendar className="w-4 h-4 text-accent-cyan" />
-                                <h3 className="text-sm font-bold text-white uppercase tracking-wider">{dateLabel}</h3>
+            <div className="px-4 lg:px-10 py-8">
+                {/* Breadcrumb / Status Line */}
+                <div className="flex items-center gap-2 text-[10px] text-white/30 uppercase tracking-widest mb-10">
+                    <span className="font-bold">Kivu Stream</span>
+                    <span className="text-white/10">/</span>
+                    <span>Score en direct du {todayStr}</span>
+                </div>
+
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                        <div className="w-10 h-10 border-4 border-accent-cyan/20 border-t-accent-cyan rounded-full animate-spin"></div>
+                        <p className="text-white/20 text-xs font-bold uppercase tracking-widest">Chargement des matchs...</p>
+                    </div>
+                ) : groupedMatches.length > 0 ? (
+                    <div className="flex flex-col gap-10">
+                        {groupedMatches.map((group: any) => (
+                            <div key={group.league?.id || 'other'} className="flex flex-col gap-4">
+                                {/* League Header */}
+                                <div className="flex items-center justify-between group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-6 h-4 bg-white/5 rounded-sm overflow-hidden flex items-center justify-center">
+                                            {group.league?.logo ? (
+                                                <img src={group.league.logo} className="w-full h-full object-contain" alt="" />
+                                            ) : (
+                                                <LayoutGrid className="w-3 h-3 text-white/20" />
+                                            )}
+                                        </div>
+                                        <h2 className="text-sm md:text-base font-black text-white uppercase tracking-tight flex items-center gap-2">
+                                            {group.league?.name || 'Autre Compétition'}
+                                            <Star className="w-3.5 h-3.5 text-white/10 group-hover:text-accent-gold transition-colors cursor-pointer" />
+                                        </h2>
+                                    </div>
+                                    <Link
+                                        href={`/league/${group.league?.id || ''}`}
+                                        className="text-[10px] font-bold text-white/30 hover:text-accent-cyan flex items-center gap-1 uppercase tracking-widest transition-colors"
+                                    >
+                                        Calendrier
+                                        <ChevronRight className="w-3 h-3" />
+                                    </Link>
+                                </div>
+
+                                {/* Matches Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    {group.matches.map((match: any) => {
+                                        // Extract time from startTime or fixture.date
+                                        let matchTime = '';
+                                        const dateStr = match.startTime || match.start_time || match.fixture?.date;
+                                        if (dateStr) {
+                                            try {
+                                                const date = new Date(dateStr);
+                                                matchTime = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                                            } catch (e) {
+                                                matchTime = match.time || '';
+                                            }
+                                        } else {
+                                            matchTime = match.time || '';
+                                        }
+
+                                        return (
+                                            <MatchCard
+                                                key={match.id}
+                                                id={match.id}
+                                                homeTeam={match.home_team || match.homeTeam?.name}
+                                                awayTeam={match.away_team || match.awayTeam?.name}
+                                                homeBadge={match.home_badge || match.homeTeam?.logo}
+                                                awayBadge={match.away_badge || match.awayTeam?.logo}
+                                                homeScore={match.home_score ?? match.goals?.home}
+                                                awayScore={match.away_score ?? match.goals?.away}
+                                                status={match.status || match.fixture?.status?.short}
+                                                time={matchTime}
+                                                timer={match.timer || match.fixture?.status?.elapsed?.toString()}
+                                            />
+                                        );
+                                    })}
+                                </div>
                             </div>
-                            <span className="text-xs text-secondary font-mono">{dateMatches.length} match{dateMatches.length > 1 ? 's' : ''}</span>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="py-40 text-center flex flex-col items-center gap-4">
+                        <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-white/10">
+                            <Clock className="w-8 h-8" />
                         </div>
-
-                        {/* Matches */}
-                        <div>
-                            {dateMatches.map((match) => {
-                                const matchTime = new Date(match.start_time || match.startTime || 0).getTime();
-                                const now = Date.now();
-
-                                // Reliable status check based on API short codes
-                                const rawStatus = match.status; // e.g. 'NS', 'FT', '1H', 'LIVE'
-                                const isLive = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'].includes(rawStatus);
-                                const isFinished = ['FT', 'AET', 'PEN'].includes(rawStatus);
-                                const isUpcoming = ['NS', 'TBD', 'SUSP', 'PST', 'CANC', 'ABD'].includes(rawStatus);
-
-                                // Fallback if status is unknown/missing, use time
-                                const hasStartedByTime = now >= matchTime;
-                                const effectiveStatus = isLive ? 'live' : (isFinished ? 'finished' : (isUpcoming ? 'upcoming' : (hasStartedByTime ? 'finished' : 'upcoming')));
-
-                                const minutesUntilStart = Math.floor((matchTime - now) / 60000);
-
-                                return (
-                                    <CompactMatchRow
-                                        key={match.id}
-                                        id={match.id}
-                                        homeTeam={match.home_team || 'Unknown'}
-                                        awayTeam={match.away_team || 'Unknown'}
-                                        homeBadge={match.home_badge}
-                                        awayBadge={match.away_badge}
-                                        matchDate={matchTime > 0 ? new Date(matchTime).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : ''}
-                                        time={effectiveStatus === 'live' ? 'LIVE' : new Date(matchTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                                        status={effectiveStatus}
-                                        minutesUntilStart={effectiveStatus === 'upcoming' ? minutesUntilStart : undefined}
-                                        homeScore={match.home_score}
-                                        awayScore={match.away_score}
-                                        timer={match.timer}
-                                    />
-                                );
-                            })}
-                        </div>
-                    </motion.div>
-                ))}
-
-                {sortedGroups.length === 0 && (
-                    <div className="py-20 text-center">
-                        <p className="text-secondary text-sm font-mono">Aucun match trouvé.</p>
+                        <p className="text-white/20 text-sm font-bold uppercase tracking-widest">Aucun match en cours</p>
                     </div>
                 )}
             </div>
         </section>
     );
+}
+
+function ChevronDown({ className }: { className?: string }) {
+    return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+    )
 }

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "stop": "taskkill /F /IM node.exe",
+    "kill": "npx kill-port 3000"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -17,6 +19,7 @@
     "next": "16.1.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-icons": "^5.5.0",
     "swr": "^2.3.8",
     "tailwind-merge": "^3.4.0"
   },

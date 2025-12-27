@@ -30,7 +30,7 @@ export default function Hero({ match }: HeroProps) {
                 <div className={styles.meta}>
                     <div className={styles.info}>
                         <Calendar size={18} />
-                        <span>{match.league} • {match.startTime}</span>
+                        <span>{match.league?.name} • {match.startTime}</span>
                     </div>
                     <div className={styles.status}>
                         <span className={styles.liveDot}></span>

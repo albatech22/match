@@ -41,7 +41,7 @@ export default function Hero() {
 
     const homeName = featuredMatch?.home_team || 'Team A';
     const awayName = featuredMatch?.away_team || 'Team B';
-    const leagueName = featuredMatch?.league || 'League';
+    const leagueName = featuredMatch?.league?.name || 'League';
 
     // Use Real Score if live/finished, otherwise 0-0 or finished score
     // If we don't have a score object, but it's finished, we use the deterministic score from the hook.
@@ -221,7 +221,7 @@ export default function Hero() {
                                 <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 <Link href={`/match/${match.id}`} className="relative z-10 block">
                                     <div className="flex justify-between text-[10px] font-bold text-white/40 mb-3 uppercase tracking-wider">
-                                        <span>{match.league}</span>
+                                        <span>{match.league?.name}</span>
                                         <span className={match.status === 'Live' ? 'text-red-500 animate-pulse' : 'text-white'}>
                                             {match.status === 'Live' ? 'DIRECT' : match.start_time?.slice(11, 16)}
                                         </span>

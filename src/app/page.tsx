@@ -17,7 +17,7 @@ export default async function Home() {
         <MatchFeed />
       </div>
 
-      <Highlights />
+      {/* <Highlights /> */}
     </main>
   )
 }

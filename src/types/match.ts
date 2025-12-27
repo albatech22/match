@@ -18,7 +18,7 @@ export interface MatchEvent {
 
 export interface Match {
     id: string
-    league: string
+    league: string | any
     country: string
     countryCode: string
     homeTeam: Team

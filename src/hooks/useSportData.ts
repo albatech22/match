@@ -1,13 +1,21 @@
 import useSWR from 'swr';
 import { useMemo } from 'react';
-import { fetcher, SPORT_API_BASE, ApiResponse, Match, StandingRow, Score } from '@/lib/api';
+import { fetcher, ApiResponse, Match, StandingRow, Score } from '@/lib/api';
+import { getLocalDateString } from '@/lib/utils';
 
 export function useLiveMatches() {
-    // Poll every 2 seconds for live data from our internal API
+    // Poll every 10 seconds for real-time live data - NO CACHE
     const { data, error, isLoading } = useSWR<ApiResponse<any[]>>(
         '/api/matches?type=live',
         fetcher,
-        { refreshInterval: 2000 }
+        {
+            refreshInterval: 10000,        // Refresh every 10 seconds
+            revalidateOnFocus: true,       // Refresh when user returns to tab
+            revalidateOnReconnect: true,   // Refresh when connection restored
+            dedupingInterval: 0,           // No deduplication - always fetch
+            revalidateIfStale: true,       // Always revalidate stale data
+            shouldRetryOnError: true       // Retry on error
+        }
     );
 
     const matchesResult = useMemo(() => {
@@ -15,36 +23,42 @@ export function useLiveMatches() {
 
         // Map API-Football structure
         const footballMatches = data.data.map((m: any) => ({
-            id: String(m.fixture.id),
-            title: `${m.teams.home.name} vs ${m.teams.away.name}`,
-            league: m.league.name?.toUpperCase(),
-            country: m.league.country,
-            countryCode: m.league.flag,
-            status: m.fixture.status.short,
-            startTime: m.fixture.date,
-            start_time: m.fixture.date,
+            id: String(m.fixture?.id || Math.random()),
+            title: `${m.teams?.home?.name || 'Unknown'} vs ${m.teams?.away?.name || 'Unknown'}`,
+            league: {
+                id: m.league?.id,
+                name: m.league?.name?.toUpperCase(),
+                country: m.league?.country,
+                logo: m.league?.logo,
+                flag: m.league?.flag
+            },
+            country: m.league?.country,
+            countryCode: m.league?.flag,
+            status: m.fixture?.status?.short || 'NS',
+            startTime: m.fixture?.date,
+            start_time: m.fixture?.date,
 
-            home_team: m.teams.home.name,
-            away_team: m.teams.away.name,
-            home_badge: m.teams.home.logo,
-            away_badge: m.teams.away.logo,
-            home_score: m.goals.home ?? 0,
-            away_score: m.goals.away ?? 0,
+            home_team: m.teams?.home?.name,
+            away_team: m.teams?.away?.name,
+            home_badge: m.teams?.home?.logo,
+            away_badge: m.teams?.away?.logo,
+            home_score: m.goals?.home ?? 0,
+            away_score: m.goals?.away ?? 0,
 
             homeTeam: {
-                id: String(m.teams.home.id),
-                name: m.teams.home.name,
-                badge: m.teams.home.logo,
-                score: m.goals.home ?? 0
+                id: String(m.teams?.home?.id || ''),
+                name: m.teams?.home?.name || 'Unknown',
+                badge: m.teams?.home?.logo,
+                score: m.goals?.home ?? 0
             },
             awayTeam: {
-                id: String(m.teams.away.id),
-                name: m.teams.away.name,
-                badge: m.teams.away.logo,
-                score: m.goals.away ?? 0
+                id: String(m.teams?.away?.id || ''),
+                name: m.teams?.away?.name || 'Unknown',
+                badge: m.teams?.away?.logo,
+                score: m.goals?.away ?? 0
             },
 
-            timer: m.fixture.status.elapsed ? `${m.fixture.status.elapsed}'` : undefined
+            timer: m.fixture?.status?.elapsed ? `${m.fixture?.status?.elapsed}′` : undefined
         }));
 
         // Priority ranking for leagues
@@ -60,7 +74,7 @@ export function useLiveMatches() {
         // Helper to calc priority score
         const getPriority = (match: any) => {
             let score = 0;
-            const leagueName = match.league?.toUpperCase() || '';
+            const leagueName = match.league?.name?.toUpperCase() || match.league?.toUpperCase() || '';
             if (leaguePriority[leagueName]) score += leaguePriority[leagueName];
 
             // Live matches get highest priority
@@ -91,143 +105,122 @@ export function useLiveMatches() {
 
 export const WESTREAM_API_BASE = 'https://westream.su';
 
-export function useUpcomingMatches() {
-    // Fetch from internal optimized API (API-Football data via cache)
+export function useUpcomingMatches(date?: string) {
+    // Determine the query date - importance of client-side date for timezone alignment
+    const queryDate = date || getLocalDateString();
+
+    // Fetch from internal API - NO CACHE, real-time updates
     const { data: sportData, error: sportError, isLoading: sportLoading } = useSWR<ApiResponse<any[]>>(
-        '/api/matches?type=scheduled',
+        `/api/matches?type=scheduled&date=${queryDate}`,
         fetcher,
-        { refreshInterval: 10000 }
+        {
+            refreshInterval: 10000,        // Refresh every 10 seconds
+            revalidateOnFocus: true,       // Refresh when user returns to tab
+            revalidateOnReconnect: true,   // Refresh when connection restored
+            dedupingInterval: 0,           // No deduplication - always fetch
+            revalidateIfStale: true,       // Always revalidate stale data
+            shouldRetryOnError: true       // Retry on error
+        }
     );
 
-    // Westream API fetch
-    const { data: westreamData, error: westreamError, isLoading: westreamLoading } = useSWR<any[]>(
+    // Westream API fetch for streaming links ONLY - real-time updates
+    const { data: westreamData, isLoading: westreamLoading } = useSWR<any[]>(
         `${WESTREAM_API_BASE}/matches/live`,
         (url) => fetch(url).then(r => r.json()),
-        { refreshInterval: 10000 }
+        {
+            refreshInterval: 10000,        // Refresh every 10 seconds
+            revalidateOnFocus: true,
+            revalidateOnReconnect: true,
+            dedupingInterval: 0,
+            revalidateIfStale: true,
+            shouldRetryOnError: true
+        }
     );
 
-    // Combine and Map Data
+    // Map Data without fallbacks
     const matches = useMemo(() => {
-        const results: Match[] = [];
-        const sportMatchesMap = new Map<string, Match>();
+        if (!Array.isArray(sportData?.data)) return [];
 
-        // 1. Process Internal API Data (API-Football)
-        // API-Football Structure: { fixture: {}, league: {}, teams: {}, goals: {}, score: {} }
-        if (Array.isArray(sportData?.data)) {
-            sportData.data.forEach((m: any) => {
-                const matchObj: Match = {
-                    id: String(m.fixture.id),
-                    title: `${m.teams.home.name} vs ${m.teams.away.name}`,
-                    league: m.league.name?.toUpperCase(),
-                    country: m.league.country,
-                    countryCode: m.league.flag, // or map to code
-                    status: m.fixture.status.short, // 'NS', '1H', 'FT' etc
-                    startTime: m.fixture.date,
-                    start_time: m.fixture.date,
+        return sportData.data.map((m: any) => {
+            const matchObj: Match = {
+                id: String(m.fixture?.id || Math.random()),
+                title: `${m.teams?.home?.name || 'Unknown'} vs ${m.teams?.away?.name || 'Unknown'}`,
+                league: {
+                    id: m.league?.id,
+                    name: m.league?.name?.toUpperCase(),
+                    country: m.league?.country,
+                    logo: m.league?.logo,
+                    flag: m.league?.flag
+                },
+                country: m.league?.country,
+                countryCode: m.league?.flag,
+                status: m.fixture?.status?.short || 'NS', // 'NS', '1H', 'FT' etc
+                startTime: m.fixture?.date,
+                start_time: m.fixture?.date,
 
-                    home_team: m.teams.home.name,
-                    away_team: m.teams.away.name,
-                    home_badge: m.teams.home.logo,
-                    away_badge: m.teams.away.logo,
+                home_team: m.teams?.home?.name,
+                away_team: m.teams?.away?.name,
+                home_badge: m.teams?.home?.logo,
+                away_badge: m.teams?.away?.logo,
 
-                    home_score: m.goals.home ?? 0,
-                    away_score: m.goals.away ?? 0,
+                home_score: m.goals?.home ?? 0,
+                away_score: m.goals?.away ?? 0,
 
-                    homeTeam: {
-                        id: String(m.teams.home.id),
-                        name: m.teams.home.name,
-                        badge: m.teams.home.logo,
-                        score: m.goals.home ?? 0
-                    },
-                    awayTeam: {
-                        id: String(m.teams.away.id),
-                        name: m.teams.away.name,
-                        badge: m.teams.away.logo,
-                        score: m.goals.away ?? 0
-                    },
+                homeTeam: {
+                    id: String(m.teams?.home?.id || ''),
+                    name: m.teams?.home?.name || 'Unknown',
+                    badge: m.teams?.home?.logo,
+                    score: m.goals?.home ?? 0
+                },
+                awayTeam: {
+                    id: String(m.teams?.away?.id || ''),
+                    name: m.teams?.away?.name || 'Unknown',
+                    badge: m.teams?.away?.logo,
+                    score: m.goals?.away ?? 0
+                },
 
-                    timer: m.fixture.status.elapsed ? `${m.fixture.status.elapsed}'` : undefined,
-                    sources: []
-                };
+                timer: m.fixture?.status?.elapsed ? `${m.fixture?.status?.elapsed}′` : undefined,
+                sources: []
+            };
 
-                results.push(matchObj);
-
-                // Index for fuzzy matching
-                const key = `${matchObj.home_team?.toLowerCase()}|${matchObj.away_team?.toLowerCase()}`;
-                sportMatchesMap.set(key, matchObj);
-            });
-        }
-
-        // 2. Process Westream Data (Secondary Source + Streaming Links)
-        if (westreamData && Array.isArray(westreamData)) {
-            westreamData.forEach((m: any) => {
-                const cat = m.category?.toLowerCase() || '';
-                const isFootball = cat === 'football' || cat === 'soccer';
-                if (!isFootball) return;
-
-                const homeName = m.teams?.home?.name || 'Home';
-                const awayName = m.teams?.away?.name || 'Away';
-
-                // Fuzzy match attempt
-                const key = `${homeName.toLowerCase()}|${awayName.toLowerCase()}`;
-                const existingMatch = sportMatchesMap.get(key);
-
-                if (existingMatch) {
-                    // Enrich with sources
-                    if (m.sources && m.sources.length > 0) {
-                        existingMatch.sources = m.sources;
-                    }
-                } else {
-                    // Fallback for matches NOT in API-Football (Westream exclusives?)
-                    results.push({
-                        id: m.id,
-                        league: m.category?.toUpperCase() || 'FOOTBALL',
-                        country: 'Global',
-                        countryCode: 'world',
-                        title: m.title,
-                        status: 'LIVE',
-                        startTime: new Date(m.date).toISOString(),
-                        homeTeam: {
-                            id: '',
-                            name: homeName,
-                            score: m.home_score ?? 0,
-                            badge: m.teams?.home?.badge
-                        },
-                        awayTeam: {
-                            id: '',
-                            name: awayName,
-                            score: m.away_score ?? 0,
-                            badge: m.teams?.away?.badge
-                        },
-                        home_team: homeName,
-                        away_team: awayName,
-                        home_badge: m.teams?.home?.badge,
-                        away_badge: m.teams?.away?.badge,
-                        home_score: m.home_score,
-                        away_score: m.away_score,
-                        start_time: new Date(m.date).toISOString(),
-                        sources: m.sources,
-                        timer: m.time || m.timer
-                    });
+            // Enrichment with Westream sources ONLY if it's a match
+            if (westreamData && Array.isArray(westreamData)) {
+                const westreamMatch = westreamData.find((wm: any) => {
+                    if (!wm || wm.category?.toLowerCase() !== 'football') return false;
+                    const title = (wm.title || '').toLowerCase();
+                    const home = matchObj.home_team?.toLowerCase();
+                    const away = matchObj.away_team?.toLowerCase();
+                    return home && away && title.includes(home) && title.includes(away);
+                });
+                if (westreamMatch?.sources) {
+                    matchObj.sources = westreamMatch.sources;
                 }
-            });
-        }
+            }
 
-        return results.sort((a, b) => new Date(a.startTime || 0).getTime() - new Date(b.startTime || 0).getTime());
+            return matchObj;
+        }).sort((a, b) => new Date(a.startTime || 0).getTime() - new Date(b.startTime || 0).getTime());
     }, [sportData, westreamData]);
 
     return {
         matches,
         isLoading: sportLoading || westreamLoading,
-        isError: sportError || westreamError
+        isError: sportError
     };
 }
 
-export function useStandings(league: string = 'PL') {
+export function useStandings(league: string = 'PL', leagueId?: number) {
+    const query = leagueId ? `leagueId=${leagueId}` : `league=${league}`;
     const { data, error, isLoading } = useSWR<any>(
-        league ? `/api/standings?league=${league}` : null,
+        league || leagueId ? `/api/standings?${query}` : null,
         fetcher,
-        { refreshInterval: 600000 }
+        {
+            refreshInterval: 10000,        // Refresh every 10 seconds for real-time standings
+            revalidateOnFocus: true,
+            revalidateOnReconnect: true,
+            dedupingInterval: 0,
+            revalidateIfStale: true,
+            shouldRetryOnError: true
+        }
     );
 
     const standingsData = useMemo(() => {
@@ -243,16 +236,16 @@ export function useStandings(league: string = 'PL') {
         return standings.map((row: any) => ({
             position: row.rank,
             team: {
-                name: row.team.name,
-                badge: row.team.logo
+                name: row.team?.name || 'Unknown',
+                badge: row.team?.logo
             },
-            played: row.all.played,
-            won: row.all.win,
-            drawn: row.all.draw,
-            lost: row.all.lose,
-            goals_for: row.all.goals.for,
-            goals_against: row.all.goals.against,
-            points: row.points,
+            played: row.all?.played ?? 0,
+            won: row.all?.win ?? 0,
+            drawn: row.all?.draw ?? 0,
+            lost: row.all?.lose ?? 0,
+            goals_for: row.all?.goals?.for ?? 0,
+            goals_against: row.all?.goals?.against ?? 0,
+            points: row.points ?? 0,
             form: row.form || ''
         }));
     }, [data]);
@@ -265,18 +258,32 @@ export function useStandings(league: string = 'PL') {
 }
 
 export function useMatchDetail(id: string) {
-    // Fetch from internal API route
+    // Fetch from internal API route - real-time updates
     const { data, error, isLoading } = useSWR<any>(
         id ? `/api/match/${id}` : null,
         fetcher,
-        { refreshInterval: 10000 }
+        {
+            refreshInterval: 10000,        // Refresh every 10 seconds
+            revalidateOnFocus: true,
+            revalidateOnReconnect: true,
+            dedupingInterval: 0,
+            revalidateIfStale: true,
+            shouldRetryOnError: true
+        }
     );
 
-    // Also fetch from westream.su to get streaming sources
+    // Also fetch from westream.su to get streaming sources - real-time updates
     const { data: westreamData } = useSWR<any[]>(
         'https://westream.su/matches/live',
         fetcher,
-        { refreshInterval: 10000 }
+        {
+            refreshInterval: 10000,
+            revalidateOnFocus: true,
+            revalidateOnReconnect: true,
+            dedupingInterval: 0,
+            revalidateIfStale: true,
+            shouldRetryOnError: true
+        }
     );
 
     const matchData = useMemo(() => {
@@ -290,7 +297,16 @@ export function useMatchDetail(id: string) {
         const matchDetail = {
             id: String(apiMatch.fixture.id),
             title: `${apiMatch.teams.home.name} vs ${apiMatch.teams.away.name}`,
-            league: apiMatch.league.name,
+            league: {
+                id: apiMatch.league.id,
+                name: apiMatch.league.name,
+                country: apiMatch.league.country,
+                logo: apiMatch.league.logo,
+                flag: apiMatch.league.flag,
+                year: apiMatch.league.year,
+                stage: apiMatch.league.stage,
+                round: apiMatch.league.round
+            },
             country: apiMatch.league.country,
             countryCode: apiMatch.league.flag,
             status: apiMatch.fixture.status.short,
@@ -324,15 +340,31 @@ export function useMatchDetail(id: string) {
             // Add lineups if available
             lineups: lineups,
 
+            // Add statistics if available
+            statistics: data.data.statistics || [],
+
             // Map events to our format
-            events: events?.map((e: any) => ({
-                time: e.time.elapsed ? `${e.time.elapsed}'` : '0',
-                type: e.type === 'Goal' ? 'goal' : e.type === 'Card' ? 'card' : e.type === 'subst' ? 'sub' : 'status',
-                team: e.team.id === apiMatch.teams.home.id ? 'home' : 'away',
-                player: e.player.name,
-                assist: e.assist?.name,
-                cardType: e.detail?.includes('Yellow') ? 'yellow' : e.detail?.includes('Red') ? 'red' : undefined
-            })) || []
+            events: events?.map((e: any) => {
+                // Improved card type detection
+                let cardType: 'yellow' | 'red' | undefined = undefined;
+                if (e.type === 'Card' && e.detail) {
+                    const detail = e.detail.toLowerCase();
+                    if (detail.includes('yellow') || detail.includes('jaune')) {
+                        cardType = 'yellow';
+                    } else if (detail.includes('red') || detail.includes('rouge')) {
+                        cardType = 'red';
+                    }
+                }
+
+                return {
+                    time: e.time.elapsed ? `${e.time.elapsed}'` : '0',
+                    type: e.type === 'Goal' ? 'goal' : e.type === 'Card' ? 'card' : e.type === 'subst' ? 'sub' : 'status',
+                    team: e.team.id === apiMatch.teams.home.id ? 'home' : 'away',
+                    player: e.player.name,
+                    assist: e.assist?.name,
+                    cardType: cardType
+                };
+            }) || []
         };
 
         // Try to find streaming sources from westream for this match
@@ -354,7 +386,8 @@ export function useMatchDetail(id: string) {
 
         return {
             ...matchDetail,
-            sources: sources && sources.length > 0 ? sources : []
+            sources: sources && sources.length > 0 ? sources : [],
+            teamFixtures: (data.data as any).teamFixtures
         };
     }, [id, data, westreamData]);
 
@@ -366,16 +399,56 @@ export function useMatchDetail(id: string) {
 }
 
 export function useScores(league: string = 'PL') {
-    // Poll for scores
-    const { data, error, isLoading } = useSWR<ApiResponse<Score[]>>(
-        `${SPORT_API_BASE}?data=results&category=scores&league=${league}`,
-        fetcher,
-        { refreshInterval: 15000 }
-    );
+    // Scores now handled via live matches API-Football
+    const { matches, isLoading, isError } = useLiveMatches();
+
+    const scores = useMemo(() => {
+        return matches.map(m => ({
+            id: m.id,
+            home: { name: m.home_team, score: m.home_score, badge: m.home_badge },
+            away: { name: m.away_team, score: m.away_score, badge: m.away_badge },
+            timer: m.timer,
+            league: m.league,
+            status: m.status
+        }));
+    }, [matches]);
 
     return {
-        scores: Array.isArray(data?.data) ? data.data : [],
+        scores,
+        isLoading,
+        isError
+    };
+}
+
+export function useMatchVideos(matchId: string) {
+    const { data, error, isLoading } = useSWR<any>(
+        matchId ? `/api/match/${matchId}/videos` : null,
+        fetcher,
+        {
+            refreshInterval: 10000,        // Refresh every 10 seconds for consistency
+            revalidateOnFocus: true,
+            revalidateOnReconnect: true,
+            dedupingInterval: 0,
+            revalidateIfStale: true,
+            shouldRetryOnError: true
+        }
+    );
+
+    const videos = useMemo(() => {
+        if (!data?.success || !Array.isArray(data?.data)) return [];
+
+        return data.data.map((v: any) => ({
+            id: v.match_id,
+            title: v.title || 'Highlights',
+            url: v.url,
+            thumbnail: v.thumbnail
+        }));
+    }, [data]);
+
+    return {
+        videos,
         isLoading,
         isError: error
     };
 }
+

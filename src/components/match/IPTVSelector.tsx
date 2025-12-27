@@ -27,7 +27,7 @@ export default function IPTVSelector({ onSelectChannel, match }: IPTVSelectorPro
         if (match) {
             const home = match.homeTeam?.name?.toLowerCase() || '';
             const away = match.awayTeam?.name?.toLowerCase() || '';
-            const league = match.league?.toLowerCase() || '';
+            const league = (typeof match.league === 'string' ? match.league : match.league?.name)?.toLowerCase() || '';
             const category = match.category?.toLowerCase() || '';
 
             const scoredChannels = channels.map(channel => {
@@ -163,8 +163,8 @@ function ChannelRow({ channel, onSelect, isRecommended }: { channel: any, onSele
         <button
             onClick={() => onSelect(channel.url)}
             className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all group text-left border relative overflow-hidden ${isRecommended
-                    ? 'bg-accent-cyan/5 border-accent-cyan/30 hover:bg-accent-cyan/10'
-                    : 'bg-white/5 border-transparent hover:bg-white/10'
+                ? 'bg-accent-cyan/5 border-accent-cyan/30 hover:bg-accent-cyan/10'
+                : 'bg-white/5 border-transparent hover:bg-white/10'
                 }`}
         >
             {/* Glow effect for recommended */}

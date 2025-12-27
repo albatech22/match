@@ -1,8 +1,11 @@
 'use client';
 
-import { Play } from 'lucide-react';
+import { Play, Settings, Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type Hls from 'hls.js';
+
+const noop = () => { };
 
 interface VideoPlayerProps {
     url?: string;
@@ -14,6 +17,10 @@ export default function VideoPlayer({ url, title }: VideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [isHls, setIsHls] = useState(false);
+    const [levels, setLevels] = useState<any[]>([]);
+    const [currentLevel, setCurrentLevel] = useState<number>(-1); // -1 is Auto
+    const [showQualityMenu, setShowQualityMenu] = useState(false);
+    const hlsRef = useRef<Hls | null>(null);
 
     useEffect(() => {
         // Reset lock when URL changes
@@ -33,25 +40,43 @@ export default function VideoPlayer({ url, title }: VideoPlayerProps) {
         let hls: Hls | null = null;
 
         // Dynamic import to avoid SSR issues
-        import('hls.js').then((HlsModule) => {
-            const Hls = HlsModule.default;
-            if (Hls.isSupported()) {
-                hls = new Hls();
-                hls.loadSource(url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    video.play().catch(() => {
-                        console.log('Autoplay prevented');
+        import('hls.js')
+            .then((HlsModule) => {
+                const Hls = HlsModule.default;
+                if (!videoRef.current) return; // Cleanup check
+
+                if (Hls.isSupported()) {
+                    hls = new Hls({
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        backBufferLength: 90
                     });
-                });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // For Safari
-                video.src = url;
-                video.addEventListener('loadedmetadata', () => {
-                    video.play();
-                });
-            }
-        });
+                    hlsRef.current = hls;
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+
+                    hls.on(HlsModule.Events.MANIFEST_PARSED, (event, data) => {
+                        setLevels(hls?.levels || []);
+                        setCurrentLevel(hls?.currentLevel ?? -1);
+                        video.play().catch(() => {
+                            console.log('Autoplay prevented');
+                        });
+                    });
+
+                    hls.on(HlsModule.Events.LEVEL_SWITCHED, (event, data) => {
+                        setCurrentLevel(data.level);
+                    });
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    // For Safari
+                    video.src = url;
+                    video.addEventListener('loadedmetadata', () => {
+                        video.play().catch(noop);
+                    });
+                }
+            })
+            .catch(err => {
+                console.error('HLS.js loading failed:', err);
+            });
 
         return () => {
             if (hls) {
@@ -108,39 +133,48 @@ export default function VideoPlayer({ url, title }: VideoPlayerProps) {
             const originalReload = window.location.reload;
 
             try {
-                // Simple overrides without complex native masking for now
-                Object.defineProperty(window.location, 'assign', {
-                    value: function (url: string) {
-                        console.log('🛡️ Blocked redirect to:', url);
-                    },
-                    writable: true,
-                    configurable: true
-                });
+                // Only block if we haven't explicitally allowed a navigation
+                // Note: Overriding global window properties can be unstable
+                const isIframeContext = !!iframeRef.current;
 
-                Object.defineProperty(window.location, 'replace', {
-                    value: function (url: string) {
-                        console.log('🛡️ Blocked redirect to:', url);
-                    },
-                    writable: true,
-                    configurable: true
-                });
+                if (isIframeContext) {
+                    Object.defineProperty(window.location, 'assign', {
+                        value: function (url: string) {
+                            if (url.includes(window.location.hostname)) {
+                                originalAssign.call(window.location, url);
+                            } else {
+                                console.log('🛡️ Blocked external redirect to:', url);
+                            }
+                        },
+                        writable: true,
+                        configurable: true
+                    });
 
-                Object.defineProperty(window.location, 'reload', {
-                    value: function () {
-                        console.log('🛡️ Blocked reload');
-                    },
-                    writable: true,
-                    configurable: true
-                });
+                    Object.defineProperty(window.location, 'replace', {
+                        value: function (url: string) {
+                            if (url.includes(window.location.hostname)) {
+                                originalReplace.call(window.location, url);
+                            } else {
+                                console.log('🛡️ Blocked external redirect to:', url);
+                            }
+                        },
+                        writable: true,
+                        configurable: true
+                    });
+                }
             } catch (e) {
                 console.error("Could not override location methods", e);
             }
 
             // 4. Block Alerts/Confirms
-            const originalAlert = window.alert;
-            const originalConfirm = window.confirm;
-            window.alert = function () { return undefined; };
-            window.confirm = function () { return false; };
+            let originalAlert = window.alert;
+            let originalConfirm = window.confirm;
+            try {
+                window.alert = function () { return undefined; };
+                window.confirm = function () { return false; };
+            } catch (e) {
+                console.error("Could not override alert/confirm", e);
+            }
 
             // 5. Iframe Interception
             if (iframeRef.current) {
@@ -178,19 +212,75 @@ export default function VideoPlayer({ url, title }: VideoPlayerProps) {
         console.log('✅ Lecteur déverrouillé');
     };
 
+    const handleQualityChange = (index: number) => {
+        if (hlsRef.current) {
+            hlsRef.current.currentLevel = index;
+            setCurrentLevel(index);
+            setShowQualityMenu(false);
+        }
+    };
+
     return (
         <div className="w-full max-w-[1400px] mx-auto">
             <div className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50 ring-1 ring-white/5">
                 {url ? (
                     <>
                         {isHls ? (
-                            <video
-                                ref={videoRef}
-                                className="w-full h-full"
-                                controls
-                                crossOrigin="anonymous"
-                                poster="/assets/images/video-placeholder.jpg" // You might want a dynamic poster
-                            />
+                            <div className="relative w-full h-full group/player">
+                                <video
+                                    ref={videoRef}
+                                    className="w-full h-full"
+                                    controls
+                                    crossOrigin="anonymous"
+                                    poster="/assets/images/video-placeholder.jpg"
+                                />
+
+                                {/* Quality Selector UI */}
+                                {levels.length > 0 && (
+                                    <div className="absolute top-4 right-4 z-[60]">
+                                        <button
+                                            onClick={() => setShowQualityMenu(!showQualityMenu)}
+                                            className="p-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-white/70 hover:text-white transition-all hover:scale-110 active:scale-95 group"
+                                            title="Qualité vidéo"
+                                        >
+                                            <Settings className={`w-5 h-5 ${showQualityMenu ? 'rotate-90 text-accent-cyan' : ''} transition-transform duration-300`} />
+                                        </button>
+
+                                        {/* Dropdown Menu */}
+                                        <AnimatePresence>
+                                            {showQualityMenu && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                    className="absolute top-full right-0 mt-2 w-48 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-2xl ring-1 ring-white/5 overflow-hidden"
+                                                >
+                                                    <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-3 py-2">Qualité</div>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <button
+                                                            onClick={() => handleQualityChange(-1)}
+                                                            className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-colors ${currentLevel === -1 ? 'bg-accent-cyan/10 text-accent-cyan' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}
+                                                        >
+                                                            Auto
+                                                            {currentLevel === -1 && <Check className="w-3.5 h-3.5" />}
+                                                        </button>
+                                                        {levels.map((level, idx) => (
+                                                            <button
+                                                                key={idx}
+                                                                onClick={() => handleQualityChange(idx)}
+                                                                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-colors ${currentLevel === idx ? 'bg-accent-cyan/10 text-accent-cyan' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}
+                                                            >
+                                                                {level.height ? `${level.height}p` : `Qualité ${idx + 1}`}
+                                                                {currentLevel === idx && <Check className="w-3.5 h-3.5" />}
+                                                            </button>
+                                                        )).reverse()}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                )}
+                            </div>
                         ) : (
                             <iframe
                                 ref={iframeRef}
