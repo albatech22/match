@@ -1,6 +1,4 @@
 import MatchFeed from '@/components/home/MatchFeed'
-import Highlights from '@/components/home/Highlights'
-import LiveScoreHeader from '@/components/layout/LiveScoreHeader'
 
 export default async function Home() {
   return (
